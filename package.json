@@ -1,0 +1,12 @@
+{
+    "name": "camps-maps",
+    "version": "1.0.0",
+    "description": "Scout camps map generator and viewer",
+    "main": "scripts/generate-camps-json.js",
+    "scripts": {
+        "generate": "node scripts/generate-camps-json.js"
+    },
+    "dependencies": {
+        "papaparse": "^5.4.1"
+    }
+}

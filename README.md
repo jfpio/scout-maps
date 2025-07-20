@@ -32,4 +32,10 @@ This project visualizes scout camps on an interactive map using Leaflet.js. Camp
 
 ## Dependencies
 - [Leaflet.js](https://leafletjs.com/) (CDN in HTML)
-- [PapaParse](https://www.papaparse.com/) (for TSV parsing) 
+- [PapaParse](https://www.papaparse.com/) (for TSV parsing)
+
+## License Attribution
+
+### Icons
+- **tent.svg** - Apache License 2.0 ([Source](https://www.svgrepo.com/svg/398471/tent))
+- **wolf.svg** - Public Domain ([Source](https://www.svgrepo.com/svg/484935/wolf)) 

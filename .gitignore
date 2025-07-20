@@ -1,2 +1,5 @@
 node_modules/
-data/ 
+data/
+public/index.html
+public/mapy_obozow_HAL2025.html
+.DS_Store 

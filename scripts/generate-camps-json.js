@@ -29,11 +29,26 @@ const parsed = Papa.parse(tsvData, {
 // Helper to parse GPS coordinates (handles both decimal and DMS)
 function parseGPS(gps) {
   if (!gps) return null;
-  // Decimal format: "53.53010681604106, 20.78754993842591"
-  if (/^-?\d+\.\d+, ?-?\d+\.\d+$/.test(gps)) {
-    const [lat, lng] = gps.split(',').map(Number);
+  
+  // Decimal format: "53.53010681604106, 20.78754993842591" or with location name: "53.814152, 21.185590, Borowski Las"
+  // Also handle format without space after comma: "53,7946841, 17,4879548"
+  if (/^-?\d+[,.]?\d+,\s*-?\d+[,.]?\d+/.test(gps)) {
+    const parts = gps.split(',');
+    // Replace comma with period for decimal separator
+    const lat = parseFloat(parts[0].replace(',', '.'));
+    const lng = parseFloat(parts[1].replace(',', '.'));
     return { lat, lng };
   }
+  
+  // DMS format with spaces: "51.518794 N, 22.896442 E"
+  const dmsSpaceRegex = /^(\d+\.\d+)\s*([NS]),?\s*(\d+\.\d+)\s*([EW])$/;
+  const spaceMatch = gps.match(dmsSpaceRegex);
+  if (spaceMatch) {
+    const lat = parseFloat(spaceMatch[1]) * (spaceMatch[2] === 'S' ? -1 : 1);
+    const lng = parseFloat(spaceMatch[3]) * (spaceMatch[4] === 'W' ? -1 : 1);
+    return { lat, lng };
+  }
+  
   // DMS format: "53°44'07.0\"N 21°38'39.3\"E"
   const dmsRegex = /(\d+)°(\d+)'([\d.]+)\"([NS])\s+(\d+)°(\d+)'([\d.]+)\"([EW])/;
   const match = gps.match(dmsRegex);
@@ -42,6 +57,7 @@ function parseGPS(gps) {
     const lng = dmsToDecimal(+match[5], +match[6], +match[7], match[8] === 'W');
     return { lat, lng };
   }
+  
   return null;
 }
 function dmsToDecimal(deg, min, sec, negative) {
@@ -55,11 +71,22 @@ const headerMap = parsed.meta.fields.reduce((acc, field) => {
   return acc;
 }, {});
 
+// Track parsing warnings
+const warnings = [];
+
 const camps = parsed.data
   .map(row => {
     if (row[headerMap['Odwołany?']] === 'TRUE') return null;
     const gps = row[headerMap['Współrzędne GPS']];
     const coords = parseGPS(gps);
+    const campType = row[headerMap['Forma wyjazdu (znormalizowana)']] || '';
+    const campNr = row[headerMap['Nr']];
+    
+    // Log warning for camps that should be parsed but aren't
+    if (!coords && (campType === 'obóz stały' || campType === 'kolonia')) {
+      warnings.push(`Camp Nr ${campNr} (${campType}) - GPS parsing failed: "${gps || 'empty'}"`);
+    }
+    
     if (!coords) return null;
     // Collect all team names (Nazwa drużyny 1-8) if present and non-empty
     const teams = [];
@@ -179,4 +206,10 @@ const html = `<!-- AUTO-GENERATED FILE. DO NOT EDIT DIRECTLY. -->
 </html>`;
 
 fs.writeFileSync(outputPath, html, 'utf8');
-console.log(`Generated ${outputPath} with ${camps.length} camps.`); 
+console.log(`Generated ${outputPath} with ${camps.length} camps.`);
+
+// Print warnings
+if (warnings.length > 0) {
+  console.log('\nWarnings:');
+  warnings.forEach(warning => console.log(`  - ${warning}`));
+} 

@@ -3,7 +3,7 @@ const path = require('path');
 const Papa = require('papaparse');
 
 // Input and output paths
-const tsvPath = path.join(__dirname, '../data/HAL 2025 - lista wyjazdów - Dane aktualne.tsv');
+const tsvPath = path.join(__dirname, '../data/HAL.tsv');
 const tentSvgPath = path.join(__dirname, '../public/tent.svg');
 const wolfSvgPath = path.join(__dirname, '../public/wolf.svg');
 const outputPath = path.join(__dirname, '../public/index.html');

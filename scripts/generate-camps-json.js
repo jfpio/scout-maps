@@ -126,6 +126,8 @@ const camps = parsed.data
       category: row[headerMap['Forma wyjazdu (znormalizowana)']] || '',
       name,
       gps: coords,
+      startDate: start,
+      endDate: end,
       details: {
         Adres: adres,
         Email: email,
@@ -158,10 +160,63 @@ const html = `<!-- AUTO-GENERATED FILE. DO NOT EDIT DIRECTLY. -->
       margin-bottom: 2px;
       text-shadow: 0 0 2px #fff;
     }
+    .date-filter {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: white;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      z-index: 1000;
+    }
+    .date-filter h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+    .date-filter label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 14px;
+    }
+    .date-filter input {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+    .date-filter button {
+      width: 100%;
+      padding: 8px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .date-filter button:hover {
+      background: #0056b3;
+    }
+    .filter-info {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #666;
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
+  <div class="date-filter">
+    <h3>Filtr dat</h3>
+    <label for="dateInput">Wybierz datę:</label>
+    <input type="date" id="dateInput">
+    <button onclick="filterByDate()">Pokaż obozy</button>
+    <button onclick="showAllCamps()">Pokaż wszystkie</button>
+    <div class="filter-info" id="filterInfo"></div>
+  </div>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
     // Inlined camp data
@@ -197,21 +252,79 @@ const html = `<!-- AUTO-GENERATED FILE. DO NOT EDIT DIRECTLY. -->
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
+    // Store all markers and labels
+    let allMarkers = [];
+    let allLabels = [];
+
+    // Function to parse date in DD-MM-YYYY format
+    function parseDate(dateStr) {
+      if (!dateStr) return null;
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) return null;
+      return new Date(parts[2], parts[1] - 1, parts[0]);
+    }
+
+    // Function to check if date is in camp range
+    function isDateInCampRange(camp, date) {
+      const startDate = parseDate(camp.startDate);
+      const endDate = parseDate(camp.endDate);
+      if (!startDate || !endDate) return false;
+      return date >= startDate && date <= endDate;
+    }
+
+    // Create markers for all camps
     camps.forEach(camp => {
       const icon = icons[camp.category] || icons['default'];
-      // Create a divIcon with label above
       const marker = L.marker([camp.gps.lat, camp.gps.lng], { icon }).addTo(map);
-      // Add label above icon
       const label = L.divIcon({
         className: 'camp-label',
         html: camp.name,
         iconAnchor: [16, 0],
         iconSize: [120, 24]
       });
-      L.marker([camp.gps.lat, camp.gps.lng], { icon: label, interactive: false }).addTo(map);
-      // Popup with details
+      const labelMarker = L.marker([camp.gps.lat, camp.gps.lng], { icon: label, interactive: false }).addTo(map);
       marker.bindPopup(camp.detailsHtml);
+      
+      // Store references
+      allMarkers.push({ marker, labelMarker, camp });
     });
+
+    // Filter camps by date
+    function filterByDate() {
+      const dateInput = document.getElementById('dateInput').value;
+      if (!dateInput) {
+        alert('Proszę wybrać datę');
+        return;
+      }
+      
+      const selectedDate = new Date(dateInput);
+      let visibleCount = 0;
+      
+      allMarkers.forEach(({ marker, labelMarker, camp }) => {
+        if (isDateInCampRange(camp, selectedDate)) {
+          marker.addTo(map);
+          labelMarker.addTo(map);
+          visibleCount++;
+        } else {
+          map.removeLayer(marker);
+          map.removeLayer(labelMarker);
+        }
+      });
+      
+      document.getElementById('filterInfo').textContent = 
+        \`Pokazano \${visibleCount} obozów aktywnych w dniu \${dateInput}\`;
+    }
+
+    // Show all camps
+    function showAllCamps() {
+      allMarkers.forEach(({ marker, labelMarker }) => {
+        marker.addTo(map);
+        labelMarker.addTo(map);
+      });
+      document.getElementById('filterInfo').textContent = 
+        \`Pokazano wszystkie obozy (\${camps.length})\`;
+      document.getElementById('dateInput').value = '';
+    }
   </script>
 </body>
 </html>`;

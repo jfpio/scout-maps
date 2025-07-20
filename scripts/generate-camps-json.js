@@ -96,7 +96,18 @@ const camps = parsed.data
         teams.push(teamName.trim());
       }
     }
-    const name = `${row[headerMap['Nr']]} ${row[headerMap['Imię komendanta/komendantki']]} ${row[headerMap['Nazwisko komendanta/komendantki']]}`.trim();
+    const instructorRank = row[headerMap['Stopień instruktorski komendanta/komendantki']] || '';
+    const scoutRank = row[headerMap['Stopień harcerski komendanta/komendantki']] || '';
+    const firstName = row[headerMap['Imię komendanta/komendantki']] || '';
+    const lastName = row[headerMap['Nazwisko komendanta/komendantki']] || '';
+    const campNumber = row[headerMap['Nr']] || '';
+    
+    // Build name with format: "Nr instruktorRank firstName lastName scoutRank"
+    let nameParts = [campNumber];
+    if (instructorRank && instructorRank !== 'brak') nameParts.push(instructorRank);
+    nameParts.push(firstName, lastName);
+    if (scoutRank && scoutRank !== 'brak') nameParts.push(scoutRank);
+    const name = nameParts.filter(Boolean).join(' ');
     const adres = row[headerMap['Adres lub trasa wyjazdu']] || '';
     const email = row[headerMap['Adres mailowy w domenie @zhr.pl']] || '';
     const start = row[headerMap['Data rozpoczęcia wyjazdu']] || '';
